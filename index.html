@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Red social</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/script.js" defer></script>
+</head>
+<body>
+  <main id="viewport" class="viewport">
+    <div id="movimiento" class="movimiento"></div>
+    <div id="tarjeta" class="touch-hint">Mantén para ir lento · Desliza ← para info</div>
+  </main>
+
+  <!-- Cuadro desplegable con la información de la imagen -->
+  <dialog id="info-modal" class="info-modal">
+    <div id="modal-sheet" class="modal-sheet">
+      <div class="modal-header">
+        <span id="modal-badge" class="modal-badge">Archivo 1</span>
+        <button id="close-modal" class="close-modal" type="button" aria-label="Cerrar">↓</button>
+      </div>
+      <div id="modal-body" class="modal-body">
+        <img id="modal-img" class="modal-img" src="" alt="Imagen seleccionada">
+        <div id="modal-text" class="modal-text"></div>
+      </div>
+      <div class="modal-footer-hint">Desliza ↑ siguiente · Desliza ↓ volver</div>
+    </div>
+  </dialog>
+</body>
+</html>
