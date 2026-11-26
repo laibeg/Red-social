@@ -15,9 +15,9 @@ const SPEED_INCREMENT = 3;      // Incremento al volver de cada cuadro de inform
 const MAX_SPEED = 45;           // Límite superior de velocidad
 const HOLD_SPEED = 2.5;         // Velocidad lenta al mantener presionado
 const EASE_FACTOR = 0.08;
-const SWIPE_LEFT_THRESHOLD = 65;
-const SWIPE_RIGHT_THRESHOLD = 65;
-const SWIPE_DOWN_THRESHOLD = 60;
+const SWIPE_LEFT_THRESHOLD = 60;
+const SWIPE_RIGHT_THRESHOLD = 60;
+const SWIPE_DOWN_THRESHOLD = 45;
 const PINCH_CLOSE_THRESHOLD = 45;
 
 const DARK_THEMES = [
@@ -58,6 +58,19 @@ function applyDarkTheme(index) {
   const theme = DARK_THEMES[index % DARK_THEMES.length];
   document.documentElement.style.setProperty('--bg-color', theme.bg);
   document.documentElement.style.setProperty('--modal-bg', theme.modal);
+  document.documentElement.style.backgroundColor = theme.bg;
+  document.body.style.backgroundColor = theme.bg;
+  modalSheet.style.backgroundColor = theme.modal;
+}
+
+function resetModalScroll() {
+  modalBody.scrollTop = 0;
+  requestAnimationFrame(() => {
+    modalBody.scrollTop = 0;
+  });
+  setTimeout(() => {
+    modalBody.scrollTop = 0;
+  }, 50);
 }
 
 async function init() {
@@ -86,6 +99,9 @@ async function init() {
 function cycleDarkBackground() {
   currentColorIndex = (currentColorIndex + 1) % DARK_THEMES.length;
   applyDarkTheme(currentColorIndex);
+  if (navigator.vibrate) {
+    navigator.vibrate(10);
+  }
 }
 
 function renderStream(images) {
@@ -182,7 +198,7 @@ function renderModalContent(index) {
     modalText.classList.add('modal-empty');
   }
 
-  modalBody.scrollTop = 0;
+  resetModalScroll();
 }
 
 function transitionToNextItem() {
@@ -203,6 +219,7 @@ function transitionToNextItem() {
     modalSheet.classList.remove('is-exiting-right');
     void modalSheet.offsetWidth;
     modalSheet.classList.add('is-entering-left');
+    resetModalScroll();
 
     setTimeout(() => {
       modalSheet.classList.remove('is-entering-left');
@@ -241,6 +258,8 @@ function openInfoModal(index) {
   if (document.activeElement && typeof document.activeElement.blur === 'function') {
     document.activeElement.blur();
   }
+
+  resetModalScroll();
 }
 
 function closeInfoModal() {
@@ -254,6 +273,7 @@ function closeInfoModal() {
   modalSheet.style.transform = '';
   modalSheet.style.opacity = '';
   modalSheet.classList.remove('is-exiting-right', 'is-entering-left');
+  modalBody.scrollTop = 0;
 
   currentAutoSpeed = Math.min(currentAutoSpeed + SPEED_INCREMENT, MAX_SPEED);
 
@@ -291,9 +311,8 @@ viewport.addEventListener('pointermove', (e) => {
   const deltaX = e.clientX - pointerStartX;
   const totalDeltaY = e.clientY - pointerStartY;
 
-  // No se modifica currentY con el arrastre: el desplazamiento solo sigue la animación automática/lenta
-
-  if (!hasTriggeredDownSwipe && totalDeltaY >= SWIPE_DOWN_THRESHOLD && totalDeltaY > Math.abs(deltaX)) {
+  // Deslizar hacia abajo cambia el color de fondo oscuro sin mover el carrusel manualmente
+  if (!hasTriggeredDownSwipe && totalDeltaY >= SWIPE_DOWN_THRESHOLD && totalDeltaY > Math.abs(deltaX) * 0.8) {
     hasTriggeredDownSwipe = true;
     cycleDarkBackground();
   }
