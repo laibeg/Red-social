@@ -5,20 +5,21 @@ const infoModal = document.getElementById('info-modal');
 const modalSheet = document.getElementById('modal-sheet');
 const modalBadge = document.getElementById('modal-badge');
 const modalImg = document.getElementById('modal-img');
+const modalMeta = document.getElementById('modal-meta');
 const modalText = document.getElementById('modal-text');
 const modalBody = document.getElementById('modal-body');
 const closeModalBtn = document.getElementById('close-modal');
 
 // Configuración de velocidades y gestos (en px)
-const AUTO_SPEED = 22;     // Velocidad rápida por defecto
-const HOLD_SPEED = 3.5;    // Velocidad lenta al mantener oprimido
+const AUTO_SPEED = 22;          // Velocidad rápida por defecto
+const HOLD_SPEED = 3.5;         // Velocidad lenta al mantener presionado
 const EASE_FACTOR = 0.08;
 const SWIPE_LEFT_THRESHOLD = 65;
-const SWIPE_UP_THRESHOLD = 65;
-const SWIPE_DOWN_THRESHOLD = 75;
+const SWIPE_RIGHT_THRESHOLD = 65;
+const PINCH_CLOSE_THRESHOLD = 45;
 
 let itemsData = [];
-let currentIndex = 0;      // Índice dentro de itemsData
+let currentIndex = 0;
 let currentY = 0;
 let currentSpeed = AUTO_SPEED;
 let halfTrackHeight = 0;
@@ -27,13 +28,15 @@ let halfTrackHeight = 0;
 let isHolding = false;
 let hasTriggeredLeftSwipe = false;
 let pointerStartX = 0;
-let pointerStartY = 0;
 let lastPointerY = 0;
 
 // Estado táctil dentro del modal
 let isModalOpen = false;
-let modalStartY = 0;
-let modalLastY = 0;
+let isTransitioningCard = false;
+const activePointers = new Map();
+let singlePointerStartX = 0;
+let singlePointerStartY = 0;
+let initialPinchDistance = null;
 let modalHasActed = false;
 
 async function init() {
@@ -63,7 +66,7 @@ function renderStream(images) {
 
   track.innerHTML = infiniteList.map((item, idx) => `
     <article class="card" data-id="${item.id}" data-index="${idx % images.length}">
-      <img src="${item.url}" alt="Imagen ${item.id}" loading="eager">
+      <img src="${item.url}" alt="${item.titulo || `Imagen ${item.id}`}" loading="eager" decoding="async">
     </article>
   `).join('');
 }
@@ -79,7 +82,10 @@ function waitForImagesAndCalculateBounds() {
         img.addEventListener('error', resolve, { once: true });
       });
     })
-  ).then(calculateBounds);
+  ).then(() => {
+    calculateBounds();
+    setTimeout(calculateBounds, 100);
+  });
 }
 
 function calculateBounds() {
@@ -130,9 +136,16 @@ function renderModalContent(index) {
   currentIndex = normalizedIndex;
   const item = itemsData[currentIndex];
 
-  modalBadge.textContent = `Imagen ${currentIndex + 1} de ${itemsData.length} · ID ${item.id}`;
+  modalBadge.textContent = item.titulo || '';
   modalImg.src = item.url;
-  modalImg.alt = `Imagen ${item.id}`;
+  modalImg.alt = item.titulo || `Imagen ${item.id}`;
+
+  const metaLines = [item.autor, item.pagina, item.fecha]
+    .filter((val) => typeof val === 'string' && val.trim().length > 0);
+
+  modalMeta.innerHTML = metaLines
+    .map((line) => `<span class="modal-meta-line">${line.trim()}</span>`)
+    .join('');
 
   if (item.info && item.info.trim().length > 0) {
     modalText.textContent = item.info;
@@ -145,11 +158,45 @@ function renderModalContent(index) {
   modalBody.scrollTop = 0;
 }
 
+function transitionToNextItem() {
+  if (isTransitioningCard) return;
+  isTransitioningCard = true;
+
+  modalSheet.style.transition = '';
+  modalSheet.style.transform = '';
+  modalSheet.classList.remove('is-entering-left');
+  modalSheet.classList.add('is-exiting-right');
+
+  if (navigator.vibrate) {
+    navigator.vibrate(12);
+  }
+
+  setTimeout(() => {
+    renderModalContent(currentIndex + 1);
+    modalSheet.classList.remove('is-exiting-right');
+    void modalSheet.offsetWidth;
+    modalSheet.classList.add('is-entering-left');
+
+    setTimeout(() => {
+      modalSheet.classList.remove('is-entering-left');
+      isTransitioningCard = false;
+    }, 260);
+  }, 190);
+}
+
 function openInfoModal(index) {
   isHolding = false;
   hasTriggeredLeftSwipe = false;
   viewport.classList.remove('is-holding');
   isModalOpen = true;
+  isTransitioningCard = false;
+  activePointers.clear();
+  initialPinchDistance = null;
+  modalHasActed = false;
+
+  modalSheet.style.transition = '';
+  modalSheet.style.transform = '';
+  modalSheet.classList.remove('is-exiting-right', 'is-entering-left');
 
   renderModalContent(index);
 
@@ -166,14 +213,25 @@ function openInfoModal(index) {
 
 function closeInfoModal() {
   isModalOpen = false;
+  isTransitioningCard = false;
+  activePointers.clear();
+  initialPinchDistance = null;
+  modalSheet.style.transition = '';
   modalSheet.style.transform = '';
   modalSheet.style.opacity = '';
+  modalSheet.classList.remove('is-exiting-right', 'is-entering-left');
 
   if (typeof infoModal.close === 'function') {
     infoModal.close();
   } else {
     infoModal.removeAttribute('open');
   }
+}
+
+function getPinchDistance() {
+  if (activePointers.size < 2) return null;
+  const [p1, p2] = Array.from(activePointers.values());
+  return Math.hypot(p2.x - p1.x, p2.y - p1.y);
 }
 
 // Gestos en la vista principal
@@ -183,7 +241,6 @@ viewport.addEventListener('pointerdown', (e) => {
   isHolding = true;
   hasTriggeredLeftSwipe = false;
   pointerStartX = e.clientX;
-  pointerStartY = e.clientY;
   lastPointerY = e.clientY;
 
   viewport.classList.add('is-holding');
@@ -198,10 +255,8 @@ viewport.addEventListener('pointermove', (e) => {
   const deltaY = e.clientY - lastPointerY;
   lastPointerY = e.clientY;
 
-  // Permite acompañar el movimiento vertical mientras mantiene oprimido
   currentY += deltaY;
 
-  // Detectar deslizamiento hacia la izquierda para desplegar información
   if (!hasTriggeredLeftSwipe && deltaX <= -SWIPE_LEFT_THRESHOLD) {
     hasTriggeredLeftSwipe = true;
     if (viewport.hasPointerCapture(e.pointerId)) {
@@ -227,65 +282,80 @@ viewport.addEventListener('pointerup', handleViewportRelease);
 viewport.addEventListener('pointercancel', handleViewportRelease);
 
 // Gestos dentro del cuadro de información:
-// - Deslizar hacia arriba: pasa a la información de la imagen siguiente
-// - Deslizar hacia abajo: regresa a la página principal
+// - Deslizar a la derecha: animación lateral hacia la imagen siguiente
+// - Pellizco (pinch) con dos dedos: regresa a la página principal
 infoModal.addEventListener('pointerdown', (e) => {
   if (!isModalOpen || e.target === closeModalBtn) return;
 
-  modalStartY = e.clientY;
-  modalLastY = e.clientY;
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   modalHasActed = false;
+
+  if (activePointers.size === 1) {
+    singlePointerStartX = e.clientX;
+    singlePointerStartY = e.clientY;
+    initialPinchDistance = null;
+  } else if (activePointers.size >= 2) {
+    modalSheet.style.transition = '';
+    modalSheet.style.transform = '';
+    initialPinchDistance = getPinchDistance();
+  }
 });
 
 infoModal.addEventListener('pointermove', (e) => {
-  if (!isModalOpen || modalHasActed) return;
+  if (!isModalOpen || modalHasActed || isTransitioningCard || !activePointers.has(e.pointerId)) return;
 
-  const deltaY = e.clientY - modalStartY;
-  const stepY = e.clientY - modalLastY;
-  modalLastY = e.clientY;
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-  const isAtTop = modalBody.scrollTop <= 0;
-  const isAtBottom = modalBody.scrollTop + modalBody.clientHeight >= modalBody.scrollHeight - 2;
-
-  // Si desliza hacia abajo desde arriba, dar feedback visual de cierre
-  if (isAtTop && deltaY > 0) {
-    modalSheet.style.transform = `translateY(${Math.min(deltaY * 0.45, 160)}px)`;
-  }
-
-  // Deslizar hacia arriba -> siguiente imagen
-  if ((isAtTop || isAtBottom) && deltaY <= -SWIPE_UP_THRESHOLD) {
-    modalHasActed = true;
-    modalSheet.style.transform = '';
-    renderModalContent(currentIndex + 1);
-    if (navigator.vibrate) {
-      navigator.vibrate(12);
+  if (activePointers.size >= 2) {
+    const currentDistance = getPinchDistance();
+    if (initialPinchDistance !== null && currentDistance !== null) {
+      const pinchDelta = initialPinchDistance - currentDistance;
+      if (pinchDelta >= PINCH_CLOSE_THRESHOLD) {
+        modalHasActed = true;
+        closeInfoModal();
+      }
     }
     return;
   }
 
-  // Deslizar hacia abajo desde el inicio -> volver a la página principal
-  if (isAtTop && deltaY >= SWIPE_DOWN_THRESHOLD) {
-    modalHasActed = true;
-    closeInfoModal();
-    return;
-  }
+  const deltaX = e.clientX - singlePointerStartX;
+  const deltaY = e.clientY - singlePointerStartY;
 
-  // Permitir scroll normal del texto si no se cumple gesto de cambio/cierre
-  if (!isAtTop || deltaY < 0) {
-    modalBody.scrollTop -= stepY;
+  if (deltaX > 10 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+    modalSheet.style.transition = 'none';
+    modalSheet.style.transform = `translateX(${Math.min(deltaX * 0.45, 90)}px)`;
+
+    if (deltaX >= SWIPE_RIGHT_THRESHOLD) {
+      modalHasActed = true;
+      transitionToNextItem();
+    }
   }
 });
 
-function handleModalRelease() {
-  if (!isModalOpen) return;
-  if (!modalHasActed) {
-    modalSheet.style.transform = '';
+function handleModalPointerEnd(e) {
+  activePointers.delete(e.pointerId);
+
+  if (activePointers.size < 2) {
+    initialPinchDistance = null;
   }
-  modalHasActed = false;
+
+  if (activePointers.size === 1) {
+    const [remaining] = Array.from(activePointers.values());
+    singlePointerStartX = remaining.x;
+    singlePointerStartY = remaining.y;
+  }
+
+  if (activePointers.size === 0) {
+    if (!modalHasActed && !isTransitioningCard) {
+      modalSheet.style.transition = '';
+      modalSheet.style.transform = '';
+    }
+    modalHasActed = false;
+  }
 }
 
-infoModal.addEventListener('pointerup', handleModalRelease);
-infoModal.addEventListener('pointercancel', handleModalRelease);
+infoModal.addEventListener('pointerup', handleModalPointerEnd);
+infoModal.addEventListener('pointercancel', handleModalPointerEnd);
 closeModalBtn.addEventListener('click', closeInfoModal);
 
 init();
