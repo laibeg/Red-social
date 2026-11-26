@@ -9,10 +9,10 @@ const modalMeta = document.getElementById('modal-meta');
 const modalText = document.getElementById('modal-text');
 const modalBody = document.getElementById('modal-body');
 
-// Configuración de velocidades, colores oscuros y gestos (en px)
-const INITIAL_SPEED = 4;        // Velocidad inicial lenta
-const SPEED_INCREMENT = 3;      // Incremento al volver de cada cuadro de información
-const MAX_SPEED = 45;           // Límite superior de velocidad
+// Configuración de velocidades, colores y gestos (en px)
+const INITIAL_SPEED = 7;        // Velocidad inicial más rápida
+const SPEED_INCREMENT = 5;      // Mayor tasa de incremento al volver de cada cuadro
+const MAX_SPEED = 55;           // Límite superior de velocidad
 const HOLD_SPEED = 2.5;         // Velocidad lenta al mantener presionado
 const EASE_FACTOR = 0.08;
 const SWIPE_LEFT_THRESHOLD = 60;
@@ -20,14 +20,15 @@ const SWIPE_RIGHT_THRESHOLD = 60;
 const SWIPE_DOWN_THRESHOLD = 45;
 const PINCH_CLOSE_THRESHOLD = 45;
 
+// Paleta oscura con mayor contraste y variedad cromática (texto blanco legible)
 const DARK_THEMES = [
-  { bg: '#0e0232', modal: '#140542' }, // Azul índigo profundo original
-  { bg: '#04132b', modal: '#081d3d' }, // Azul medianoche oscuro
-  { bg: '#062133', modal: '#0b2f47' }, // Azul petróleo oscuro
-  { bg: '#1b0628', modal: '#280a3b' }, // Morado ciruela oscuro
-  { bg: '#240716', modal: '#340b20' }, // Burdeos/vino oscuro
-  { bg: '#061c18', modal: '#0a2b25' }, // Verde bosque muy oscuro
-  { bg: '#12131a', modal: '#1b1d27' }  // Grafito oscuro
+  { bg: '#0e0232', modal: '#180754' }, // Índigo profundo original
+  { bg: '#072a6e', modal: '#0d3d99' }, // Azul cobalto vibrante
+  { bg: '#054a5e', modal: '#086985' }, // Cian/turquesa profundo
+  { bg: '#3b0a6e', modal: '#531199' }, // Violeta intenso
+  { bg: '#630b42', modal: '#87105a' }, // Magenta oscuro
+  { bg: '#074d35', modal: '#0b6e4c' }, // Esmeralda oscura
+  { bg: '#5c2d06', modal: '#7d3e09' }  // Ámbar/cobrizo oscuro
 ];
 
 let itemsData = [];
@@ -311,7 +312,6 @@ viewport.addEventListener('pointermove', (e) => {
   const deltaX = e.clientX - pointerStartX;
   const totalDeltaY = e.clientY - pointerStartY;
 
-  // Deslizar hacia abajo cambia el color de fondo oscuro sin mover el carrusel manualmente
   if (!hasTriggeredDownSwipe && totalDeltaY >= SWIPE_DOWN_THRESHOLD && totalDeltaY > Math.abs(deltaX) * 0.8) {
     hasTriggeredDownSwipe = true;
     cycleDarkBackground();

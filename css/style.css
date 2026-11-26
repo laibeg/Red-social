@@ -9,12 +9,12 @@
 
 html, body {
   --bg-color: #0e0232;
-  --modal-bg: #140542;
+  --modal-bg: #180754;
   width: 100%;
   height: 100dvh;
   overflow: hidden;
   background-color: var(--bg-color);
-  transition: background-color 0.35s ease;
+  transition: background-color 0.25s ease;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
   touch-action: none;
 }
@@ -36,8 +36,8 @@ html, body {
 .movimiento {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 12px;
+  gap: 14px;
+  padding: 12px 28px;
   will-change: transform;
 }
 
@@ -56,7 +56,7 @@ html, body {
 }
 
 .viewport.is-holding .card.is-active {
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.45);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.55);
 }
 
 .card img {
@@ -71,10 +71,10 @@ html, body {
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(14, 2, 50, 0.84);
+  background: rgba(10, 4, 28, 0.86);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.92);
   padding: 9px 18px;
   border-radius: 99px;
   font-size: 0.8rem;
@@ -103,7 +103,7 @@ html, body {
   max-width: none;
   max-height: none;
   border: none;
-  background: rgba(6, 1, 24, 0.8);
+  background: rgba(6, 1, 24, 0.78);
   backdrop-filter: blur(10px);
   color: #ffffff;
   z-index: 50;
@@ -128,8 +128,8 @@ html, body {
   max-width: 600px;
   height: 88dvh;
   background-color: var(--modal-bg);
-  transition: background-color 0.35s ease, transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.22s ease;
-  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  transition: background-color 0.25s ease, transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.22s ease;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 24px 24px 0 0;
   display: flex;
   flex-direction: column;
@@ -169,7 +169,7 @@ html, body {
   justify-content: space-between;
   gap: 12px;
   padding: 16px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
   flex-shrink: 0;
   text-align: left;
 }
@@ -201,7 +201,7 @@ html, body {
 }
 
 .modal-meta {
-  color: #a39db8;
+  color: rgba(255, 255, 255, 0.72);
   font-size: 0.82rem;
   margin-bottom: 14px;
 }
@@ -217,21 +217,21 @@ html, body {
 .modal-text {
   font-size: 0.96rem;
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.92);
+  color: rgba(255, 255, 255, 0.95);
   white-space: pre-line;
 }
 
 .modal-empty {
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.65);
   font-style: italic;
 }
 
 .modal-footer-hint {
   padding: 10px 16px 22px;
   font-size: 0.76rem;
-  color: rgba(255, 255, 255, 0.68);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(10, 2, 34, 0.7);
+  color: rgba(255, 255, 255, 0.78);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.25);
   flex-shrink: 0;
   text-align: center;
 }
