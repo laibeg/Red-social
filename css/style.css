@@ -9,6 +9,7 @@
 
 html, body {
   --bg-color: #0e0232;
+  --modal-bg: #140542;
   width: 100%;
   height: 100dvh;
   overflow: hidden;
@@ -23,7 +24,9 @@ html, body {
   height: 100%;
   position: relative;
   overflow: hidden;
+  background-color: transparent;
   cursor: grab;
+  outline: none;
 }
 
 .viewport.is-holding {
@@ -86,6 +89,12 @@ html, body {
 }
 
 /* Modal desplegable */
+.info-modal,
+.info-modal:focus,
+.info-modal:focus-visible {
+  outline: none;
+}
+
 .info-modal {
   position: fixed;
   inset: 0;
@@ -108,18 +117,24 @@ html, body {
   justify-content: center;
 }
 
+.modal-sheet,
+.modal-sheet:focus,
+.modal-sheet:focus-visible {
+  outline: none;
+}
+
 .modal-sheet {
   width: 100%;
   max-width: 600px;
   height: 88dvh;
-  background: #140542;
+  background-color: var(--modal-bg);
+  transition: background-color 0.35s ease, transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.22s ease;
   border-top: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 24px 24px 0 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   will-change: transform, opacity;
-  transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.22s ease;
   animation: slideUp 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
@@ -160,8 +175,8 @@ html, body {
 }
 
 .modal-badge {
-  font-size: 0.88rem;
-  line-height: 1.3;
+  font-size: 1.15rem;
+  line-height: 1.25;
   color: #ffffff;
   font-weight: 600;
 }

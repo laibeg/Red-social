@@ -17,17 +17,17 @@ const HOLD_SPEED = 2.5;         // Velocidad lenta al mantener presionado
 const EASE_FACTOR = 0.08;
 const SWIPE_LEFT_THRESHOLD = 65;
 const SWIPE_RIGHT_THRESHOLD = 65;
-const SWIPE_DOWN_THRESHOLD = 75;
+const SWIPE_DOWN_THRESHOLD = 60;
 const PINCH_CLOSE_THRESHOLD = 45;
 
-const DARK_BG_COLORS = [
-  '#0e0232', // Azul índigo profundo original
-  '#04132b', // Azul medianoche oscuro
-  '#062133', // Azul petróleo oscuro
-  '#1b0628', // Morado ciruela oscuro
-  '#240716', // Burdeos/vino oscuro
-  '#061c18', // Verde bosque muy oscuro
-  '#12131a'  // Grafito oscuro
+const DARK_THEMES = [
+  { bg: '#0e0232', modal: '#140542' }, // Azul índigo profundo original
+  { bg: '#04132b', modal: '#081d3d' }, // Azul medianoche oscuro
+  { bg: '#062133', modal: '#0b2f47' }, // Azul petróleo oscuro
+  { bg: '#1b0628', modal: '#280a3b' }, // Morado ciruela oscuro
+  { bg: '#240716', modal: '#340b20' }, // Burdeos/vino oscuro
+  { bg: '#061c18', modal: '#0a2b25' }, // Verde bosque muy oscuro
+  { bg: '#12131a', modal: '#1b1d27' }  // Grafito oscuro
 ];
 
 let itemsData = [];
@@ -44,7 +44,6 @@ let hasTriggeredLeftSwipe = false;
 let hasTriggeredDownSwipe = false;
 let pointerStartX = 0;
 let pointerStartY = 0;
-let lastPointerY = 0;
 
 // Estado táctil dentro del modal
 let isModalOpen = false;
@@ -54,6 +53,12 @@ let singlePointerStartX = 0;
 let singlePointerStartY = 0;
 let initialPinchDistance = null;
 let modalHasActed = false;
+
+function applyDarkTheme(index) {
+  const theme = DARK_THEMES[index % DARK_THEMES.length];
+  document.documentElement.style.setProperty('--bg-color', theme.bg);
+  document.documentElement.style.setProperty('--modal-bg', theme.modal);
+}
 
 async function init() {
   try {
@@ -67,7 +72,7 @@ async function init() {
       throw new Error('imagenes.json está vacío');
     }
 
-    document.documentElement.style.setProperty('--bg-color', DARK_BG_COLORS[0]);
+    applyDarkTheme(0);
     renderStream(itemsData);
     waitForImagesAndCalculateBounds();
     window.addEventListener('resize', calculateBounds);
@@ -79,8 +84,8 @@ async function init() {
 }
 
 function cycleDarkBackground() {
-  currentColorIndex = (currentColorIndex + 1) % DARK_BG_COLORS.length;
-  document.documentElement.style.setProperty('--bg-color', DARK_BG_COLORS[currentColorIndex]);
+  currentColorIndex = (currentColorIndex + 1) % DARK_THEMES.length;
+  applyDarkTheme(currentColorIndex);
 }
 
 function renderStream(images) {
@@ -232,6 +237,10 @@ function openInfoModal(index) {
   } else {
     infoModal.setAttribute('open', '');
   }
+
+  if (document.activeElement && typeof document.activeElement.blur === 'function') {
+    document.activeElement.blur();
+  }
 }
 
 function closeInfoModal() {
@@ -270,7 +279,6 @@ viewport.addEventListener('pointerdown', (e) => {
   hasTriggeredDownSwipe = false;
   pointerStartX = e.clientX;
   pointerStartY = e.clientY;
-  lastPointerY = e.clientY;
 
   viewport.classList.add('is-holding');
   viewport.setPointerCapture(e.pointerId);
@@ -282,13 +290,10 @@ viewport.addEventListener('pointermove', (e) => {
 
   const deltaX = e.clientX - pointerStartX;
   const totalDeltaY = e.clientY - pointerStartY;
-  const stepY = e.clientY - lastPointerY;
-  lastPointerY = e.clientY;
 
-  currentY += stepY;
+  // No se modifica currentY con el arrastre: el desplazamiento solo sigue la animación automática/lenta
 
-  // Deslizar hacia abajo cambia el color de fondo oscuro
-  if (!hasTriggeredDownSwipe && totalDeltaY >= SWIPE_DOWN_THRESHOLD && Math.abs(totalDeltaY) > Math.abs(deltaX) * 1.2) {
+  if (!hasTriggeredDownSwipe && totalDeltaY >= SWIPE_DOWN_THRESHOLD && totalDeltaY > Math.abs(deltaX)) {
     hasTriggeredDownSwipe = true;
     cycleDarkBackground();
   }
