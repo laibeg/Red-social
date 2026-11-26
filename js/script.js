@@ -78,16 +78,18 @@ function resetModalScroll() {
 function isImagePath(value) {
   if (typeof value !== 'string') return false;
   const trimmed = value.trim();
+  if (!trimmed || /\s/.test(trimmed) || trimmed.includes('\n')) return false;
   return (
-    /\.(jpe?g|png|webp|gif|avif)(\?.*)?$/i.test(trimmed) ||
-    trimmed.startsWith('./assets/') ||
-    trimmed.startsWith('/assets/')
+    /\.(jpe?g|png|webp|gif|avif|svg)(\?.*)?$/i.test(trimmed) ||
+    trimmed.startsWith('./') ||
+    trimmed.startsWith('../') ||
+    trimmed.startsWith('/')
   );
 }
 
 async function init() {
   try {
-    const response = await fetch('imagenes.json');
+    const response = await fetch(`imagenes.json?v=${Date.now()}`, { cache: 'no-store' });
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
@@ -206,19 +208,25 @@ function renderModalContent(index) {
     if (isImagePath(item.info)) {
       modalText.style.display = 'none';
       modalText.textContent = '';
-      modalInfoImg.src = item.info.trim();
-      modalInfoImg.alt = item.titulo || 'Información en imagen';
-      modalInfoImg.style.display = 'block';
+      if (modalInfoImg) {
+        modalInfoImg.src = item.info.trim();
+        modalInfoImg.alt = item.titulo || 'Información en imagen';
+        modalInfoImg.style.display = 'block';
+      }
     } else {
-      modalInfoImg.style.display = 'none';
-      modalInfoImg.src = '';
+      if (modalInfoImg) {
+        modalInfoImg.style.display = 'none';
+        modalInfoImg.src = '';
+      }
       modalText.style.display = 'block';
       modalText.textContent = item.info;
       modalText.classList.remove('modal-empty');
     }
   } else {
-    modalInfoImg.style.display = 'none';
-    modalInfoImg.src = '';
+    if (modalInfoImg) {
+      modalInfoImg.style.display = 'none';
+      modalInfoImg.src = '';
+    }
     modalText.style.display = 'block';
     modalText.textContent = 'Esta imagen no tiene información registrada.';
     modalText.classList.add('modal-empty');
