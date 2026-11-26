@@ -235,3 +235,10 @@ html, body {
   flex-shrink: 0;
   text-align: center;
 }
+.modal-info-img {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  margin-top: 6px;
+  display: block;
+}

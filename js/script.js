@@ -7,6 +7,7 @@ const modalBadge = document.getElementById('modal-badge');
 const modalImg = document.getElementById('modal-img');
 const modalMeta = document.getElementById('modal-meta');
 const modalText = document.getElementById('modal-text');
+const modalInfoImg = document.getElementById('modal-info-img');
 const modalBody = document.getElementById('modal-body');
 
 // Configuración de velocidades, colores y gestos (en px)
@@ -72,6 +73,16 @@ function resetModalScroll() {
   setTimeout(() => {
     modalBody.scrollTop = 0;
   }, 50);
+}
+
+function isImagePath(value) {
+  if (typeof value !== 'string') return false;
+  const trimmed = value.trim();
+  return (
+    /\.(jpe?g|png|webp|gif|avif)(\?.*)?$/i.test(trimmed) ||
+    trimmed.startsWith('./assets/') ||
+    trimmed.startsWith('/assets/')
+  );
 }
 
 async function init() {
@@ -192,9 +203,23 @@ function renderModalContent(index) {
     .join('');
 
   if (item.info && item.info.trim().length > 0) {
-    modalText.textContent = item.info;
-    modalText.classList.remove('modal-empty');
+    if (isImagePath(item.info)) {
+      modalText.style.display = 'none';
+      modalText.textContent = '';
+      modalInfoImg.src = item.info.trim();
+      modalInfoImg.alt = item.titulo || 'Información en imagen';
+      modalInfoImg.style.display = 'block';
+    } else {
+      modalInfoImg.style.display = 'none';
+      modalInfoImg.src = '';
+      modalText.style.display = 'block';
+      modalText.textContent = item.info;
+      modalText.classList.remove('modal-empty');
+    }
   } else {
+    modalInfoImg.style.display = 'none';
+    modalInfoImg.src = '';
+    modalText.style.display = 'block';
     modalText.textContent = 'Esta imagen no tiene información registrada.';
     modalText.classList.add('modal-empty');
   }
