@@ -8,10 +8,12 @@
 }
 
 html, body {
+  --bg-color: #0e0232;
   width: 100%;
   height: 100dvh;
   overflow: hidden;
-  background-color: #0e0232;
+  background-color: var(--bg-color);
+  transition: background-color 0.35s ease;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
   touch-action: none;
 }
@@ -162,18 +164,6 @@ html, body {
   line-height: 1.3;
   color: #ffffff;
   font-weight: 600;
-}
-
-.close-modal {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  font-size: 1rem;
-  cursor: pointer;
-  flex-shrink: 0;
 }
 
 .modal-body {

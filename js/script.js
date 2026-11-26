@@ -8,26 +8,42 @@ const modalImg = document.getElementById('modal-img');
 const modalMeta = document.getElementById('modal-meta');
 const modalText = document.getElementById('modal-text');
 const modalBody = document.getElementById('modal-body');
-const closeModalBtn = document.getElementById('close-modal');
 
-// Configuración de velocidades y gestos (en px)
-const AUTO_SPEED = 22;          // Velocidad rápida por defecto
-const HOLD_SPEED = 3.5;         // Velocidad lenta al mantener presionado
+// Configuración de velocidades, colores oscuros y gestos (en px)
+const INITIAL_SPEED = 4;        // Velocidad inicial lenta
+const SPEED_INCREMENT = 3;      // Incremento al volver de cada cuadro de información
+const MAX_SPEED = 45;           // Límite superior de velocidad
+const HOLD_SPEED = 2.5;         // Velocidad lenta al mantener presionado
 const EASE_FACTOR = 0.08;
 const SWIPE_LEFT_THRESHOLD = 65;
 const SWIPE_RIGHT_THRESHOLD = 65;
+const SWIPE_DOWN_THRESHOLD = 75;
 const PINCH_CLOSE_THRESHOLD = 45;
+
+const DARK_BG_COLORS = [
+  '#0e0232', // Azul índigo profundo original
+  '#04132b', // Azul medianoche oscuro
+  '#062133', // Azul petróleo oscuro
+  '#1b0628', // Morado ciruela oscuro
+  '#240716', // Burdeos/vino oscuro
+  '#061c18', // Verde bosque muy oscuro
+  '#12131a'  // Grafito oscuro
+];
 
 let itemsData = [];
 let currentIndex = 0;
+let currentColorIndex = 0;
 let currentY = 0;
-let currentSpeed = AUTO_SPEED;
+let currentAutoSpeed = INITIAL_SPEED;
+let currentSpeed = INITIAL_SPEED;
 let halfTrackHeight = 0;
 
 // Estado táctil en la vista principal
 let isHolding = false;
 let hasTriggeredLeftSwipe = false;
+let hasTriggeredDownSwipe = false;
 let pointerStartX = 0;
+let pointerStartY = 0;
 let lastPointerY = 0;
 
 // Estado táctil dentro del modal
@@ -51,6 +67,7 @@ async function init() {
       throw new Error('imagenes.json está vacío');
     }
 
+    document.documentElement.style.setProperty('--bg-color', DARK_BG_COLORS[0]);
     renderStream(itemsData);
     waitForImagesAndCalculateBounds();
     window.addEventListener('resize', calculateBounds);
@@ -59,6 +76,11 @@ async function init() {
   } catch (error) {
     console.error('Error al cargar imagenes.json:', error);
   }
+}
+
+function cycleDarkBackground() {
+  currentColorIndex = (currentColorIndex + 1) % DARK_BG_COLORS.length;
+  document.documentElement.style.setProperty('--bg-color', DARK_BG_COLORS[currentColorIndex]);
 }
 
 function renderStream(images) {
@@ -96,7 +118,7 @@ function calculateBounds() {
 
 function animate() {
   if (!isModalOpen) {
-    const targetSpeed = isHolding ? HOLD_SPEED : AUTO_SPEED;
+    const targetSpeed = isHolding ? Math.min(HOLD_SPEED, currentAutoSpeed) : currentAutoSpeed;
     currentSpeed += (targetSpeed - currentSpeed) * EASE_FACTOR;
     currentY -= currentSpeed;
 
@@ -187,6 +209,7 @@ function transitionToNextItem() {
 function openInfoModal(index) {
   isHolding = false;
   hasTriggeredLeftSwipe = false;
+  hasTriggeredDownSwipe = false;
   viewport.classList.remove('is-holding');
   isModalOpen = true;
   isTransitioningCard = false;
@@ -212,6 +235,8 @@ function openInfoModal(index) {
 }
 
 function closeInfoModal() {
+  if (!isModalOpen) return;
+
   isModalOpen = false;
   isTransitioningCard = false;
   activePointers.clear();
@@ -220,6 +245,8 @@ function closeInfoModal() {
   modalSheet.style.transform = '';
   modalSheet.style.opacity = '';
   modalSheet.classList.remove('is-exiting-right', 'is-entering-left');
+
+  currentAutoSpeed = Math.min(currentAutoSpeed + SPEED_INCREMENT, MAX_SPEED);
 
   if (typeof infoModal.close === 'function') {
     infoModal.close();
@@ -240,7 +267,9 @@ viewport.addEventListener('pointerdown', (e) => {
 
   isHolding = true;
   hasTriggeredLeftSwipe = false;
+  hasTriggeredDownSwipe = false;
   pointerStartX = e.clientX;
+  pointerStartY = e.clientY;
   lastPointerY = e.clientY;
 
   viewport.classList.add('is-holding');
@@ -252,10 +281,17 @@ viewport.addEventListener('pointermove', (e) => {
   if (!isHolding || isModalOpen) return;
 
   const deltaX = e.clientX - pointerStartX;
-  const deltaY = e.clientY - lastPointerY;
+  const totalDeltaY = e.clientY - pointerStartY;
+  const stepY = e.clientY - lastPointerY;
   lastPointerY = e.clientY;
 
-  currentY += deltaY;
+  currentY += stepY;
+
+  // Deslizar hacia abajo cambia el color de fondo oscuro
+  if (!hasTriggeredDownSwipe && totalDeltaY >= SWIPE_DOWN_THRESHOLD && Math.abs(totalDeltaY) > Math.abs(deltaX) * 1.2) {
+    hasTriggeredDownSwipe = true;
+    cycleDarkBackground();
+  }
 
   if (!hasTriggeredLeftSwipe && deltaX <= -SWIPE_LEFT_THRESHOLD) {
     hasTriggeredLeftSwipe = true;
@@ -271,6 +307,7 @@ function handleViewportRelease(e) {
 
   isHolding = false;
   hasTriggeredLeftSwipe = false;
+  hasTriggeredDownSwipe = false;
   viewport.classList.remove('is-holding');
 
   if (viewport.hasPointerCapture(e.pointerId)) {
@@ -285,7 +322,7 @@ viewport.addEventListener('pointercancel', handleViewportRelease);
 // - Deslizar a la derecha: animación lateral hacia la imagen siguiente
 // - Pellizco (pinch) con dos dedos: regresa a la página principal
 infoModal.addEventListener('pointerdown', (e) => {
-  if (!isModalOpen || e.target === closeModalBtn) return;
+  if (!isModalOpen) return;
 
   activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   modalHasActed = false;
@@ -356,6 +393,5 @@ function handleModalPointerEnd(e) {
 
 infoModal.addEventListener('pointerup', handleModalPointerEnd);
 infoModal.addEventListener('pointercancel', handleModalPointerEnd);
-closeModalBtn.addEventListener('click', closeInfoModal);
 
 init();
